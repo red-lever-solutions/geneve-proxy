@@ -16,12 +16,13 @@ outbound:
   allowed_transport_protocols:
     - 0x0006 # TCP
     - 0x0011 # UDP
+    - 0x0001 # ICMP
 
   # If `blocked_transport_protocols` is set and has values, the proxy
   # will drop any outbound flows using transport protocols present in the list.
   blocked_transport_protocols:
-    - 0x0001 # ICMP
-  
+    - 0x0011 # UDP
+
   #####################
   ## Application Layer ##
   #####################

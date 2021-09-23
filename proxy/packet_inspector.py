@@ -35,12 +35,12 @@ class PacketInspector:
     def _assess_internet_layer(self, flow_stack: FlowStack, flow: Flow, data: bytes) -> bool:
         """Assess the internet layer (IPv4)."""
         inner_ipv4_header = Ipv4Header(data)
-        source_address = ipaddress.IPv4Address(inner_ipv4_header.source_ip)
+        destination_address = ipaddress.IPv4Address(inner_ipv4_header.destination_ip)
 
         flow_cookie = flow.cookie
 
         if flow is None or flow.direction_allowed is None:
-            direction = Flow.DIR_OUTBOUND if source_address.is_private else Flow.DIR_INBOUND
+            direction = Flow.DIR_OUTBOUND if destination_address.is_global else Flow.DIR_INBOUND
 
             if direction == Flow.DIR_OUTBOUND and self._config.outbound.get('drop_all_traffic'):
                 print('Flow dropped because all outbound traffic is blocked')
