@@ -8,6 +8,11 @@ from networking.ipv4 import Ipv4Header
 from .proxy_config import ProxyConfig
 from .flow_stack import Flow, FlowStack
 
+
+def convert_ip_in_bytes_to_string(bytes):
+    return f'{bytes[0]}.{bytes[1]}.{bytes[2]}.{bytes[3]}'
+
+
 class PacketInspector:
     """PacketInspector class."""
 
@@ -25,6 +30,7 @@ class PacketInspector:
         data = data[inner_ipv4_header.ihl * 4:]
 
         return self._assess_transport_layer(flow_stack, flow, data, inner_ipv4_header)
+
 
     def _assess_internet_layer(self, flow_stack: FlowStack, flow: Flow, data: bytes) -> bool:
         """Assess the internet layer (IPv4)."""
@@ -127,7 +133,7 @@ class PacketInspector:
             # destination port is present in the list.
             if dest_port not in allowed_application_ports:
                 print(
-                    f'Dropped {flow.dir_string()} flow '
+                    f'Dropped {flow.dir_string()} flow from {convert_ip_in_bytes_to_string(inner_ipv4_header.source_ip)} to {convert_ip_in_bytes_to_string(inner_ipv4_header.destination_ip)}'
                     f'because port {dest_port} is not in the allow list'
                 )
                 flow_stack.set_flow(flow.cookie, application_allowed=False) # block this flow
@@ -145,6 +151,11 @@ class PacketInspector:
         flow = flow_stack.set_flow( # allow the transport protocol of this flow
             flow.cookie,
             application_allowed=True
+        )
+
+        print(
+            f'Allowed {flow.dir_string()} flow from {convert_ip_in_bytes_to_string(inner_ipv4_header.source_ip)} to '
+            f'{convert_ip_in_bytes_to_string(inner_ipv4_header.destination_ip)} on port {dest_port}'
         )
 
         return True
