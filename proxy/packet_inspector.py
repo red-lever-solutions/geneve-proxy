@@ -13,6 +13,14 @@ def convert_ip_in_bytes_to_string(bytes):
     return f'{bytes[0]}.{bytes[1]}.{bytes[2]}.{bytes[3]}'
 
 
+class colors:  # You may need to change color settings
+    RED = '\033[31m'
+    RESET = '\033[m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+
+
 class PacketInspector:
     """PacketInspector class."""
 
@@ -31,7 +39,6 @@ class PacketInspector:
 
         return self._assess_transport_layer(flow_stack, flow, data, inner_ipv4_header)
 
-
     def _assess_internet_layer(self, flow_stack: FlowStack, flow: Flow, data: bytes) -> bool:
         """Assess the internet layer (IPv4)."""
         inner_ipv4_header = Ipv4Header(data)
@@ -43,15 +50,15 @@ class PacketInspector:
             direction = Flow.DIR_OUTBOUND if destination_address.is_global else Flow.DIR_INBOUND
 
             if direction == Flow.DIR_OUTBOUND and self._config.outbound.get('drop_all_traffic'):
-                print('Flow dropped because all outbound traffic is blocked')
-                flow_stack.set_flow(flow_cookie, direction_allowed=False) # block this flow
+                print(colors.RED + 'Flow dropped because all outbound traffic is blocked' + colors.RESET)
+                flow_stack.set_flow(flow_cookie, direction_allowed=False)  # block this flow
                 return False
             if direction == Flow.DIR_INBOUND and self._config.inbound.get('drop_all_traffic'):
-                print('Flow dropped because all inbound traffic is blocked')
-                flow_stack.set_flow(flow_cookie, direction_allowed=False) # block this flow
+                print(colors.RED + 'Flow dropped because all inbound traffic is blocked' + colors.RESET)
+                flow_stack.set_flow(flow_cookie, direction_allowed=False)  # block this flow
                 return False
 
-            flow = flow_stack.set_flow( # allow the direction of this flow
+            flow = flow_stack.set_flow(  # allow the direction of this flow
                 flow_cookie,
                 direction_allowed=True,
                 direction=direction
@@ -73,26 +80,28 @@ class PacketInspector:
                 # protocol is present in the list.
                 if inner_ipv4_protocol not in allowed_transport_protocols:
                     print(
+                        colors.RED +
                         f'Dropped {flow.dir_string()} flow because protocol {inner_ipv4_protocol} '
-                        'is not in the allow list'
+                        'is not in the allow list' + colors.RESET
                     )
-                    flow_stack.set_flow(flow_cookie, transport_allowed=False) # block this flow
+                    flow_stack.set_flow(flow_cookie, transport_allowed=False)  # block this flow
                     return False
 
             if blocked_transport_protocols is not None:
                 if inner_ipv4_protocol in blocked_transport_protocols:
                     print(
+                        colors.RED +
                         f'Dropped {flow.dir_string()} flow because protocol {inner_ipv4_protocol} '
-                        'is in the block list'
+                        'is in the block list' + colors.RESET
                     )
-                    flow_stack.set_flow(flow_cookie, transport_allowed=False) # block this flow
+                    flow_stack.set_flow(flow_cookie, transport_allowed=False)  # block this flow
                     return False
 
-            flow = flow_stack.set_flow( # allow the transport protocol of this flow
+            flow = flow_stack.set_flow(  # allow the transport protocol of this flow
                 flow_cookie,
                 transport_allowed=True
             )
-            if inner_ipv4_protocol == 0x0001: # ICMP
+            if inner_ipv4_protocol == 0x0001:  # ICMP
                 # Ping (ICMP), has no application layer,
                 # so allow the 'application'.
                 flow = flow_stack.set_flow(
@@ -114,9 +123,9 @@ class PacketInspector:
             return True
 
         # Get the transport header (TCP or UDP)
-        if inner_ipv4_header.protocol == 0x0006: # TCP
+        if inner_ipv4_header.protocol == 0x0006:  # TCP
             transport_header = TcpHeader(data)
-        elif inner_ipv4_header.protocol == 0x0011: # UDP
+        elif inner_ipv4_header.protocol == 0x0011:  # UDP
             transport_header = UdpHeader(data)
 
         if flow.direction == Flow.DIR_OUTBOUND:
@@ -133,29 +142,34 @@ class PacketInspector:
             # destination port is present in the list.
             if dest_port not in allowed_application_ports:
                 print(
-                    f'Dropped {flow.dir_string()} flow from {convert_ip_in_bytes_to_string(inner_ipv4_header.source_ip)} to {convert_ip_in_bytes_to_string(inner_ipv4_header.destination_ip)}'
-                    f'because port {dest_port} is not in the allow list'
+                    colors.RED +
+                    f'Dropped {flow.dir_string()} flow from '
+                    f'{convert_ip_in_bytes_to_string(inner_ipv4_header.source_ip)} '
+                    f'to {convert_ip_in_bytes_to_string(inner_ipv4_header.destination_ip)} '
+                    f'because port {dest_port} is not in the allow list' + colors.RESET
                 )
-                flow_stack.set_flow(flow.cookie, application_allowed=False) # block this flow
+                flow_stack.set_flow(flow.cookie, application_allowed=False)  # block this flow
                 return False
 
         if blocked_application_ports is not None:
             if dest_port in blocked_application_ports:
                 print(
+                    colors.RED +
                     f'Dropped {flow.dir_string()} flow '
-                    f'because port {dest_port} is in the block list'
+                    f'because port {dest_port} is in the block list' + colors.RESET
                 )
-                flow_stack.set_flow(flow.cookie, application_allowed=False) # block this flow
+                flow_stack.set_flow(flow.cookie, application_allowed=False)  # block this flow
                 return False
 
-        flow = flow_stack.set_flow( # allow the transport protocol of this flow
+        flow = flow_stack.set_flow(  # allow the transport protocol of this flow
             flow.cookie,
             application_allowed=True
         )
 
         print(
+            colors.GREEN +
             f'Allowed {flow.dir_string()} flow from {convert_ip_in_bytes_to_string(inner_ipv4_header.source_ip)} to '
-            f'{convert_ip_in_bytes_to_string(inner_ipv4_header.destination_ip)} on port {dest_port}'
+            f'{convert_ip_in_bytes_to_string(inner_ipv4_header.destination_ip)} on port {dest_port}' + colors.RESET
         )
 
         return True
