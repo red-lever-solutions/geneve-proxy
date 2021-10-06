@@ -69,7 +69,7 @@ def hc_response() -> str:
     response = 'HTTP/1.1 200 OK\n'
     response_body = 'Healthy'
 
-    print('sending healthcheck')
+    # print('sending healthcheck')
 
     response_headers = {
         'Content-Type': 'text/html; encoding=utf8',
